@@ -39,6 +39,10 @@ extern volatile uint8_t just_pressed, pressed;
 extern volatile uint8_t mcBgColor, mcFgColor;
 extern volatile uint8_t displaymode;
 
+#ifdef BACKLIGHT_AUTO
+volatile uint8_t backlightauto; // auto brightness mode on/off
+#endif
+
 // This variable keeps track of whether we have not pressed any
 // buttons in a few seconds, and turns off the menu display
 volatile uint8_t timeoutcounter = 0;
@@ -83,6 +87,9 @@ void enter_alarm_menu(void);
 void print_arrow(u08 x, u08 y, u08 l, u08 color);
 void print_date(u08 month, u08 day, u08 year, u08 mode);
 void print_display_setting(u08 color);
+#ifdef BACKLIGHT_ADJUST
+void print_backlight_setting(u08 color);
+#endif
 void print_instructions(char *line1, char *line2);
 void print_instructions2(char *line1a, char *line1b, char *line2a,
   char *line2b, u08 color);
@@ -273,11 +280,9 @@ void display_main_menu(void)
   print_display_setting(mcFgColor);
 
 #ifdef BACKLIGHT_ADJUST
-  glcdSetAddress(MENU_INDENT, 5);
-  glcdPutStr("Backlight:        ", mcFgColor);
-  glcdPrintNumber(OCR2B >> OCR2B_BITSHIFT, mcFgColor);
+  print_backlight_setting(mcFgColor);
 #endif
-  
+
   print_instructions(instrAdvance, instrSet);
   glcdFillRectangle2(126, 48, 2, 16, ALIGN_TOP, FILL_FULL, mcBgColor);
 
@@ -336,6 +341,7 @@ void enter_alarm_menu(void)
           menu_alarm();
         }
         while (displaymode != SET_ALARM && displaymode != SHOW_TIME);
+        glcdClearScreen(mcBgColor);
       }
       if (displaymode == SET_ALARM)
         just_pressed = just_pressed | BTTN_MENU;
@@ -400,6 +406,30 @@ void print_display_setting(u08 color)
     glcdPutStr("Inverse", color);
   }
 }
+
+#ifdef BACKLIGHT_ADJUST
+//
+// Function: print_backlight_setting
+//
+// Print the backlight setting ('Auto' or value)
+//
+void print_backlight_setting(u08 color)
+{
+  glcdSetAddress(MENU_INDENT, 5);
+#ifdef BACKLIGHT_AUTO
+  if (backlightauto)
+  {
+    glcdPutStr("Backlight:      Auto", mcFgColor);
+  }
+  else
+#endif
+  {
+    glcdPutStr("Backlight:        ", mcFgColor);
+    glcdPrintNumber(OCR2B >> OCR2B_BITSHIFT, mcFgColor);
+  }
+}
+#endif
+
 
 //
 // Function: print_instructions
@@ -636,6 +666,9 @@ void set_backlight(void)
     {
       // Mode change
       eeprom_write_byte((uint8_t *)EE_BRIGHT, OCR2B);
+#ifdef BACKLIGHT_AUTO
+      eeprom_write_byte((uint8_t *)EE_BRIGHT_AUTO, backlightauto);
+#endif
       return;
     }
 
@@ -648,6 +681,9 @@ void set_backlight(void)
     {
       // Timed out!
       eeprom_write_byte((uint8_t *)EE_BRIGHT, OCR2B);
+#ifdef BACKLIGHT_AUTO
+      eeprom_write_byte((uint8_t *)EE_BRIGHT_AUTO, backlightauto);
+#endif
       displaymode = SHOW_TIME;     
       return;
     }
@@ -661,19 +697,13 @@ void set_backlight(void)
         DEBUG(putstring_nl("Setting backlight"));
         // Now it is selected
         mode = SET_BRT;
-        // Print the brightness 
-        glcdSetAddress(MENU_INDENT + 18 * 6, 5);
-        glcdPrintNumber(OCR2B >> OCR2B_BITSHIFT, mcBgColor);	
-        // Display instructions below
+        print_backlight_setting(mcFgColor);
         print_instructions(instrChange, instrSave);
       }
       else
       {
         mode = SET_BRIGHTNESS;
-        // Print the brightness normal
-        glcdSetAddress(MENU_INDENT + 18 * 6, 5);
-        glcdPrintNumber(OCR2B >> OCR2B_BITSHIFT, mcFgColor);
-        // Display instructions below
+        print_backlight_setting(mcFgColor);
         print_instructions(instrExit, instrSet);
       }
       screenmutex--;
@@ -683,17 +713,30 @@ void set_backlight(void)
       just_pressed = 0;
       if (mode == SET_BRT)
       {
+#ifdef BACKLIGHT_AUTO
+        // sequence is 0...16,auto,0...
+        if (backlightauto == GLCD_TRUE)
+        {
+          backlightauto = GLCD_FALSE;
+          OCR2B = 0;
+        }
+        else if((OCR2B + OCR2B_PLUS) > OCR2A_VALUE)
+          backlightauto = GLCD_TRUE;
+        else
+          OCR2B += OCR2B_PLUS;
+#else
         OCR2B += OCR2B_PLUS;
+#endif
+
         if(OCR2B > OCR2A_VALUE)
           OCR2B = 0;
+
         screenmutex++;
         display_main_menu();
-        // Display instructions below
         print_instructions(instrChange, instrSave);
         // Put a small arrow next to 'Backlight'
         print_arrow(0, 43, MENU_INDENT - 1, mcFgColor);
-        glcdSetAddress(MENU_INDENT + 18 * 6, 5);
-        glcdPrintNumber(OCR2B >> OCR2B_BITSHIFT, mcBgColor);
+        print_backlight_setting(mcFgColor);
         screenmutex--;
       }
       if (pressed & BTTN_PLUS)

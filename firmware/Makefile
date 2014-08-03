@@ -31,14 +31,16 @@ MARIO = -DMARIO
 # in monochron[] in anim.c [firmware].
 
 # Monochron clocks - I
-SRC = $(BASE) \
-  clock/digital.c clock/analog.c clock/puzzle.c \
-  clock/spotfire.c clock/cascade.c clock/speeddial.c clock/spiderplot.c \
-  clock/trafficlight.c
+#SRC = $(BASE) \
+#  clock/digital.c clock/analog.c clock/puzzle.c \
+#  clock/spotfire.c clock/cascade.c clock/speeddial.c clock/spiderplot.c \
+#  clock/trafficlight.c
 
 # Monochron clocks - II
 #SRC = $(BASE) \
 #  clock/mosquito.c clock/nerd.c clock/pong.c clock/slider.c
+SRC = $(BASE) \
+  clock/pong.c
 
 # All clocks
 # Note: This will build a much too big firmware file but serves as a test
@@ -109,11 +111,14 @@ LDFLAGS += -lm
 
 # Programming support using avrdude
 # For a full listing type: avrdude -c ?
-AVRDUDE_PROGRAMMER = arduino
-AVRDUDE_PORT = /dev/ttyUSB0
+#AVRDUDE_PROGRAMMER = arduino
+#AVRDUDE_PORT = /dev/ttyUSB0
+#AVRDUDE_WRITE_FLASH = -U flash:w:$(TARGET).hex
+#AVRDUDE_BAUD = 57600
+#AVRDUDE_FLAGS = -b $(AVRDUDE_BAUD) -p $(MCU) -P $(AVRDUDE_PORT) -c $(AVRDUDE_PROGRAMMER)
+AVRDUDE_PROGRAMMER = usbasp
 AVRDUDE_WRITE_FLASH = -U flash:w:$(TARGET).hex
-AVRDUDE_BAUD = 57600
-AVRDUDE_FLAGS = -b $(AVRDUDE_BAUD) -p $(MCU) -P $(AVRDUDE_PORT) -c $(AVRDUDE_PROGRAMMER)
+AVRDUDE_FLAGS = -p $(MCU) -c $(AVRDUDE_PROGRAMMER)
 
 # Uncomment the following if you want avrdude's erase cycle counter.
 # Note that this counter needs to be initialized first using -Yn,

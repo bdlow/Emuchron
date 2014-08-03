@@ -39,6 +39,11 @@ volatile uint8_t displaymode = SHOW_TIME;
 volatile uint8_t alarmOn, alarmSelect;
 volatile uint8_t alarming = GLCD_FALSE;
 
+#ifdef BACKLIGHT_AUTO
+volatile uint8_t backlightauto = GLCD_TRUE;
+volatile uint8_t lightlevel;
+#endif
+
 // Indicates whether in the config menu something is busy writing
 // to the LCD, thus interfering with the process to update the time
 // in the config screen.
@@ -107,22 +112,29 @@ int main(void)
 {
   u08 doNextClock = GLCD_FALSE;
 
-  // Check if we were reset
-  MCUSR = 0;
-  
   // Just in case we were reset inside of the glcd init function
   // which would happen if the lcd is not plugged in. The end result
   // of that is it will beep, pause, for as long as there is no lcd
   // plugged in.
+  MCUSR = 0;
   wdt_disable();
 
   // Init uart
-  DEBUGP("*** UART");
   uart_init(BRRL_192);
+  DEBUGP("*** UART");
+
+  // Setup 1-ms timer on timer0 (required for beep())
+  DEBUGP("*** 1-ms Timer");
+  TCCR0A = _BV(WGM01);
+  TCCR0B = _BV(CS01) | _BV(CS00);
+  OCR0A = 125;
+  TIMSK0 |= _BV(OCIE0A);
+  sei();
 
   // Init piezo
   DEBUGP("*** Piezo");
   PIEZO_DDR |= _BV(PIEZO);
+  beep(3750, 100);
 
   // Init system real time clock
   DEBUGP("*** System clock");
@@ -149,13 +161,6 @@ int main(void)
   alarmTimer = 0;
   alarmStateSet();
 
-  // Setup 1-ms timer on timer0
-  DEBUGP("*** 1-ms Timer");
-  TCCR0A = _BV(WGM01);
-  TCCR0B = _BV(CS01) | _BV(CS00);
-  OCR0A = 125;
-  TIMSK0 |= _BV(OCIE0A);
-
   // Turn backlight on
   DEBUGP("*** Backlight");
   DDRD |= _BV(3);
@@ -167,9 +172,11 @@ int main(void)
   TCCR2B |= _BV(WGM22);
   OCR2A = OCR2A_VALUE;
   OCR2B = eeprom_read_byte((uint8_t *)EE_BRIGHT);
+#ifdef BACKLIGHT_AUTO
+  backlightauto = eeprom_read_byte((uint8_t *)EE_BRIGHT_AUTO);
+#endif
 #endif
   DDRB |= _BV(5);
-  beep(4000, 100);
 
   // Init LCD.
   // glcdInit locks and disables interrupts in one of its functions.
@@ -183,8 +190,8 @@ int main(void)
   glcdInit(mcBgColor);
 
   // Be friendly and give a welcome message
-  DEBUGP("*** Welcome");
-  animWelcome();
+  //DEBUGP("*** Welcome");
+  //animWelcome();
 
   // Init to display the first defined Monochron clock
   DEBUGP("*** Start initial clock");
@@ -289,6 +296,61 @@ int main(void)
         just_pressed = 0;
       }
     }
+
+#if defined(BACKLIGHT_ADJUST) && defined(BACKLIGHT_AUTO)
+    // check LDR value, and adjust backlight accordingly
+    if ((backlightauto == GLCD_TRUE) && (time_event == GLCD_TRUE))
+    {
+      uint8_t ldr;
+      uint8_t admux_state, adcsra_state;
+#ifdef EMULIN
+      // simulate day/night cycle over a minute; sunup @ 20s, down at 40s
+      ldr = ((time_s/20) % 2) * 200 + time_s;
+#else
+      // save state of ADCMUX before setting up for ADC1
+      admux_state = ADMUX;
+      adcsra_state = ADCSRA;
+
+      // read ADC1 and average
+      ADCSRA = 0; // disable ADC so we can safely change the channel
+      ADMUX = _BV(REFS0) | _BV(ADLAR) | _BV(MUX0); // aref=vcc, 8-bit, ADC1
+      ADCSRA = _BV(ADEN) | _BV(ADPS2) | _BV(ADPS1) | _BV(ADPS0);
+      ADCSRA |= _BV(ADSC);    // start a conversion
+      while (! (ADCSRA & _BV(ADIF))); // wait
+      ldr = ADCH;
+
+      // put ADCMUX back (for buttons)
+      ADMUX = admux_state;
+      ADCSRA = adcsra_state;
+#endif
+      // - use a weighted average of recent light levels (a low-pass filter)
+      //   to filter out transient light changes
+      // - the sensitivity is asymmetric to respond quickly to light, and 
+      //   more slowly to dark
+      // - this simple filter will always have a proportional error, never
+      //   quite reaching 'ldr' (i.e. when the error term is less than
+      //   2^BACKLIGHT_AUTO_SENSITIVITY_(UP|DN), it is shifted into oblivion)
+      if (ldr > lightlevel)
+      {
+        lightlevel += (ldr - lightlevel) >> BACKLIGHT_AUTO_SENSITIVITY_UP;
+      }
+      else
+      {
+        lightlevel += (ldr - lightlevel) >> BACKLIGHT_AUTO_SENSITIVITY_DN;
+      }
+
+      // 8 bit lightlevel to (1-OCR2A_VALUE) brightness
+      OCR2B = ((uint16_t)(lightlevel * OCR2A_VALUE ) >> 8) + 1;
+
+      DEBUG(putstring("LDR "));
+      DEBUG(uart_putw_dec(ldr));
+      DEBUG(putstring(" / "));
+      DEBUG(uart_putw_dec(lightlevel));
+      DEBUG(putstring(" / "));
+      DEBUG(uart_putw_dec(OCR2B));
+      DEBUGP("");
+    }
+#endif
 
     // We're now done with button handling. If a Monochron clock is active
     // have it update itself based on time/alarm/init events and data set
@@ -803,10 +865,11 @@ void init_eeprom(void)
     eeprom_write_byte((uint8_t *)EE_ALARM_HOUR, 8);
     eeprom_write_byte((uint8_t *)EE_ALARM_MIN, 0);
     eeprom_write_byte((uint8_t *)EE_BRIGHT, OCR2A_VALUE);
+    eeprom_write_byte((uint8_t *)EE_BRIGHT_AUTO, GLCD_FALSE);
     eeprom_write_byte((uint8_t *)EE_VOLUME, 1);
     eeprom_write_byte((uint8_t *)EE_REGION, DATELONG_DOW);
     eeprom_write_byte((uint8_t *)EE_TIME_FORMAT, TIME_24H);
-    eeprom_write_byte((uint8_t *)EE_BGCOLOR, 0);
+    eeprom_write_byte((uint8_t *)EE_BGCOLOR, OFF);
     eeprom_write_byte((uint8_t *)EE_ALARM_HOUR2, 9);
     eeprom_write_byte((uint8_t *)EE_ALARM_MIN2, 15);
     eeprom_write_byte((uint8_t *)EE_ALARM_HOUR3, 10);
