@@ -302,11 +302,11 @@ int main(void)
     if ((backlightauto == GLCD_TRUE) && (time_event == GLCD_TRUE))
     {
       uint8_t ldr;
-      uint8_t admux_state, adcsra_state;
 #ifdef EMULIN
       // simulate day/night cycle over a minute; sunup @ 20s, down at 40s
       ldr = ((time_s/20) % 2) * 200 + time_s;
 #else
+      uint8_t admux_state, adcsra_state;
       // save state of ADCMUX before setting up for ADC1
       admux_state = ADMUX;
       adcsra_state = ADCSRA;
@@ -867,7 +867,6 @@ void init_eeprom(void)
     eeprom_write_byte((uint8_t *)EE_BRIGHT, OCR2A_VALUE);
     eeprom_write_byte((uint8_t *)EE_BRIGHT_AUTO, GLCD_FALSE);
     eeprom_write_byte((uint8_t *)EE_VOLUME, 1);
-    eeprom_write_byte((uint8_t *)EE_REGION, DATELONG_DOW);
     eeprom_write_byte((uint8_t *)EE_TIME_FORMAT, TIME_24H);
     eeprom_write_byte((uint8_t *)EE_BGCOLOR, OFF);
     eeprom_write_byte((uint8_t *)EE_ALARM_HOUR2, 9);
