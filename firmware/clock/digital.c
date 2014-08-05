@@ -52,7 +52,7 @@ void digitalAlarmAreaUpdate(void);
 //
 void digitalCycle(void)
 {
-  char clockInfo[9];
+  char clockInfo[9] = {0};
 
   // Update alarm info in clock
   digitalAlarmAreaUpdate();
@@ -69,6 +69,7 @@ void digitalCycle(void)
   {
     glcdPutStr2(digiDateXStart, digiDateYStart, FONT_5X7N,
       (char *)days[dotw(mcClockNewDM, mcClockNewDD, mcClockNewDY)], mcFgColor);
+#ifdef DATE_MONTHDAY
     glcdPutStr2(digiDateXStart + 24, digiDateYStart, FONT_5X7N,
       (char *)months[mcClockNewDM - 1], mcFgColor);
     animValToStr(mcClockNewDD, clockInfo);
@@ -79,6 +80,20 @@ void digitalCycle(void)
     animValToStr(mcClockNewDY, &(clockInfo[6]));
     glcdPutStr2(digiDateXStart + 48, digiDateYStart, FONT_5X7N, clockInfo,
       mcFgColor);
+#else
+    animValToStr(mcClockNewDD, clockInfo);
+    clockInfo[2] = ' ';
+    glcdPutStr2(digiDateXStart + 24, digiDateYStart, FONT_5X7N,
+      clockInfo, mcFgColor);
+    glcdPutStr2(digiDateXStart + 42, digiDateYStart, FONT_5X7N,
+      (char *)months[mcClockNewDM - 1], mcFgColor);
+    clockInfo[0] = ' ';
+    clockInfo[1] = '2';
+    clockInfo[2] = '0';
+    animValToStr(mcClockNewDY, &(clockInfo[3]));
+    glcdPutStr2(digiDateXStart + 60, digiDateYStart, FONT_5X7N, clockInfo,
+      mcFgColor);
+#endif
   }
 
   // Verify changes in time

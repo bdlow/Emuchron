@@ -242,7 +242,7 @@ void analogAlarmAreaUpdate(void)
     {
       // Show date
       u08 pxDone = 0;
-      char msg[4];
+      char msg[4] = {0};
 
       // Clear alarm area
       glcdFillRectangle(ANA_ALARM_X_START - ANA_ALARM_RADIUS - 1,
@@ -251,12 +251,22 @@ void analogAlarmAreaUpdate(void)
       mcU8Util1 = GLCD_FALSE;
 
       // Show the date
-      pxDone = glcdPutStr2(ANA_DATE_X_START, ANA_DATE_Y_START, FONT_5X5P,
-        (char *)months[mcClockNewDM - 1], mcFgColor) + ANA_DATE_X_START;
+      char *s1, *s2;
+#ifdef DATE_MONTHDAY
+      s1 = (char *)months[mcClockNewDM - 1];
+      s2 = msg;
       msg[0] = ' ';
       animValToStr(mcClockNewDD, &(msg[1]));
-      pxDone = pxDone + glcdPutStr2(pxDone, ANA_DATE_Y_START, FONT_5X5P, msg, mcFgColor) -
-        ANA_DATE_X_START;
+#else
+      s1 = msg;
+      s2 = (char *)months[mcClockNewDM - 1];
+      animValToStr(mcClockNewDD, msg);
+      msg[2] = ' ';
+#endif
+      pxDone = glcdPutStr2(ANA_DATE_X_START, ANA_DATE_Y_START, FONT_5X5P,
+        s1, mcFgColor) + ANA_DATE_X_START;
+      pxDone = pxDone + glcdPutStr2(pxDone, ANA_DATE_Y_START, FONT_5X5P, 
+        s2, mcFgColor) - ANA_DATE_X_START;
       if (pxDone <= ANA_DATE_X_SIZE)
         glcdFillRectangle(ANA_DATE_X_START + pxDone, ANA_DATE_Y_START,
           ANA_DATE_X_SIZE - pxDone + 1, FILL_BLANK, mcBgColor);

@@ -323,9 +323,14 @@ void setscore(void)
     right_score = mcClockNewTM;
     break;
   case SCORE_MODE_DATE:
-    // Month + Day
+    // Date
+#ifdef DATE_MONTHDAY
     left_score = mcClockNewDM;
     right_score = mcClockNewDD;
+#else
+    left_score = mcClockNewDD;
+    right_score = mcClockNewDM;
+#endif
     break;
   case SCORE_MODE_YEAR:
     // 20 + Year
