@@ -379,10 +379,17 @@ void print_date(u08 month, u08 day, u08 year, u08 mode)
   glcdSetAddress(MENU_INDENT, 3);
   glcdPutStr("Date:", mcFgColor);
   glcdPutStr(days[dotw(month, day, year)], mcFgColor);
+#ifdef DATE_MONTHDAY
   glcdPutStr(months[month - 1], (mode == SET_MONTH) ? mcBgColor : mcFgColor);
   glcdWriteChar(' ', mcFgColor);
   glcdPrintNumber(day, (mode == SET_DAY) ? mcBgColor : mcFgColor);
   glcdWriteChar(',', mcFgColor);
+#else
+  glcdPrintNumber(day, (mode == SET_DAY) ? mcBgColor : mcFgColor);
+  glcdWriteChar(' ', mcFgColor);
+  glcdPutStr(months[month - 1], (mode == SET_MONTH) ? mcBgColor : mcFgColor);
+  glcdWriteChar(' ', mcFgColor);
+#endif  
   glcdPrintNumber(20, (mode == SET_YEAR) ? mcBgColor : mcFgColor);
   glcdPrintNumber(year, (mode == SET_YEAR) ? mcBgColor : mcFgColor);
 }
@@ -796,7 +803,11 @@ void set_date(void)
       just_pressed = 0;
       screenmutex++;
 
+#ifdef DATE_MONTHDAY
       if (mode == SET_DATE)
+#else
+      if (mode == SET_DAY)
+#endif
       {
         DEBUG(putstring_nl("Set date month"));
         // Now it is selected
@@ -807,7 +818,11 @@ void set_date(void)
         print_instructions2(instrPlusPrefix, "mon", instrSetPrefix, "mon ",
           mcFgColor);
       }
+#ifdef DATE_MONTHDAY
       else if (mode == SET_MONTH)
+#else
+      else if (mode == SET_DATE)
+#endif
       {
         DEBUG(putstring_nl("Set date day"));
         mode = SET_DAY;
@@ -817,7 +832,11 @@ void set_date(void)
         print_instructions2(instrPlusPrefix, "day", instrSetPrefix, "day ",
           mcFgColor);
       }
+#ifdef DATE_MONTHDAY
       else if ((mode == SET_DAY))
+#else
+      else if (mode == SET_MONTH)
+#endif
       {
         DEBUG(putstring_nl("Set year"));
         mode = SET_YEAR;
