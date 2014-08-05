@@ -72,15 +72,9 @@
 // Enums
 
 // Constants for how to display time & date
-// Those commented out are no longer supported
-//#define REGION_US	0
-//#define REGION_EU	1
-//#define DOW_REGION_US	2
-//#define DOW_REGION_EU	3
-//#define DATELONG	4
-#define DATELONG_DOW	5
-//#define TIME_12H	0
-#define TIME_24H	1
+//#define DATE_MONTHDAY	1
+#define TIME_12H	GLCD_FALSE
+#define TIME_24H	GLCD_TRUE
 
 // Constants for calculating the Timer2 interrupt return rate.
 // Make the i2ctime readout at a certain number of times a 
@@ -101,26 +95,25 @@
 // DO NOT set EE_INITIALIZED to 0xFF / 255, as that is
 // the state the eeprom will be in when totally erased.
 // also don't use 0xC3, as that's the value other monochron firmware uses
-#define EE_INITIALIZED	0xC4
-#define EE_INIT			 0
-#define EE_ALARM_HOUR	 1
-#define EE_ALARM_MIN	 2
-#define EE_BRIGHT		 3
-#define EE_BRIGHT_AUTO	 4
-#define EE_VOLUME		 5
-#define EE_REGION		 6
-#define EE_TIME_FORMAT	 7
-#define EE_SNOOZE		 8
-#define EE_BGCOLOR		 9
-#define EE_ALARM_HOUR2	10
-#define EE_ALARM_MIN2	11
-#define EE_ALARM_HOUR3	12
-#define EE_ALARM_MIN3	13
-#define EE_ALARM_HOUR4	14
-#define EE_ALARM_MIN4	15
-#define EE_ALARM_SELECT 16
+#define EE_INITIALIZED	0xC5
+#define EE_INIT			0
+#define EE_ALARM_HOUR	1
+#define EE_ALARM_MIN	2
+#define EE_BRIGHT		3
+#define EE_BRIGHT_AUTO	4
+#define EE_VOLUME		5
+#define EE_TIME_FORMAT	6
+#define EE_SNOOZE		7
+#define EE_BGCOLOR		8
+#define EE_ALARM_HOUR2	9
+#define EE_ALARM_MIN2	10
+#define EE_ALARM_HOUR3	11
+#define EE_ALARM_MIN3	12
+#define EE_ALARM_HOUR4	13
+#define EE_ALARM_MIN4	14
+#define EE_ALARM_SELECT 15
 // Set EE_MAX to the highest value in use above
-#define EE_MAX		16
+#define EE_MAX		15
 
 // Function prototypes
 void alarmStateSet(void);

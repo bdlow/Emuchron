@@ -110,7 +110,7 @@ void spotAlarmAreaUpdate(void)
   u08 inverseAlarmArea = GLCD_FALSE;
   u08 newAlmDisplayState = GLCD_FALSE;
   u08 pxDone = 0;
-  char msg[7];
+  char msg[7] = {0};
 
   if ((mcCycleCounter & 0x0F) >= 8)
     newAlmDisplayState = GLCD_TRUE;
@@ -135,12 +135,22 @@ void spotAlarmAreaUpdate(void)
         mcU8Util1 = GLCD_FALSE;
       }
 
+      char *s1, *s2;
+#ifdef DATE_MONTHDAY
+      s1 = (char *)months[mcClockNewDM - 1];
+      s2 = msg;
+      animValToStr(mcClockNewDD, &(msg[1]));
+#else
+      s1 = msg;
+      s2 = (char *)months[mcClockNewDM - 1];
+      animValToStr(mcClockNewDD, msg);
+      msg[2] = ' ';
+#endif
       // Draw date
       pxDone = glcdPutStr2(VIZ_AD_X_START, VIZ_AD_Y_START, FONT_5X5P,
-        (char *)months[mcClockNewDM - 1], mcFgColor) + VIZ_AD_X_START;
-      animValToStr(mcClockNewDD, &(msg[1]));
-      pxDone = pxDone + glcdPutStr2(pxDone, VIZ_AD_Y_START, FONT_5X5P, msg, mcFgColor) -
-        VIZ_AD_X_START;
+        s1, mcFgColor) + VIZ_AD_X_START;
+      pxDone = pxDone + glcdPutStr2(pxDone, VIZ_AD_Y_START, FONT_5X5P, 
+        s2, mcFgColor) - VIZ_AD_X_START;
     }
 
     // Clean up any trailing remnants of previous text

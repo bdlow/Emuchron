@@ -204,7 +204,7 @@ void mosquitoAlarmAreaUpdate(void)
   u08 inverseAlarmArea = GLCD_FALSE;
   u08 newAlmDisplayState = GLCD_FALSE;
   u08 pxDone = 0;
-  char msg[5];
+  char msg[5] = {0};
 
   if ((mcCycleCounter & 0x0F) >= 8)
     newAlmDisplayState = GLCD_TRUE;
@@ -228,13 +228,23 @@ void mosquitoAlarmAreaUpdate(void)
         mcU8Util1 = GLCD_FALSE;
       }
 
-      // Show date
+      char *s1, *s2;
+#ifdef DATE_MONTHDAY
+      s1 = (char *)months[mcClockNewDM - 1];
+      s2 = msg;
       msg[0] = ' ';
-      pxDone = glcdPutStr2(MOS_AD_X_START, MOS_AD_Y_START, FONT_5X5P,
-        (char *)months[mcClockNewDM - 1], mcFgColor) + MOS_AD_X_START;
       animValToStr(mcClockNewDD, &(msg[1]));
-      pxDone = pxDone + glcdPutStr2(pxDone, MOS_AD_Y_START, FONT_5X5P, msg, mcFgColor) -
-        MOS_AD_X_START;
+#else
+      s1 = msg;
+      s2 = (char *)months[mcClockNewDM - 1];
+      animValToStr(mcClockNewDD, msg);
+      msg[2] = ' ';
+#endif
+      // Show date
+      pxDone = glcdPutStr2(MOS_AD_X_START, MOS_AD_Y_START, FONT_5X5P,
+        s1, mcFgColor) + MOS_AD_X_START;
+      pxDone = pxDone + glcdPutStr2(pxDone, MOS_AD_Y_START, FONT_5X5P,
+        s2, mcFgColor) - MOS_AD_X_START;
     }
 
     // Clean up any trailing remnants of previous text

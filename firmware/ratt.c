@@ -867,7 +867,6 @@ void init_eeprom(void)
     eeprom_write_byte((uint8_t *)EE_BRIGHT, OCR2A_VALUE);
     eeprom_write_byte((uint8_t *)EE_BRIGHT_AUTO, GLCD_FALSE);
     eeprom_write_byte((uint8_t *)EE_VOLUME, 1);
-    eeprom_write_byte((uint8_t *)EE_REGION, DATELONG_DOW);
     eeprom_write_byte((uint8_t *)EE_TIME_FORMAT, TIME_24H);
     eeprom_write_byte((uint8_t *)EE_BGCOLOR, OFF);
     eeprom_write_byte((uint8_t *)EE_ALARM_HOUR2, 9);
